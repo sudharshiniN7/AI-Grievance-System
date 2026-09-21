@@ -1,0 +1,139 @@
+.dashboard-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* ---------- Summary cards ---------- */
+
+.dashboard-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dashboard-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-summary-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.dashboard-summary-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Recent complaints table ---------- */
+
+.dashboard-recent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.dashboard-recent-header h2 {
+  font-size: 16px;
+}
+
+.dashboard-recent-header a {
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dashboard-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-table-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.6fr 1fr 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 4px;
+  text-decoration: none;
+  color: var(--color-text);
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard-table-row:last-child {
+  border-bottom: none;
+}
+
+.dashboard-table-head {
+  color: var(--color-text-faint);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+a.dashboard-table-row:hover {
+  background: var(--color-bg);
+}
+
+.dashboard-table-id {
+  font-weight: 600;
+  color: var(--color-navy);
+}
+
+.dashboard-table-route {
+  color: var(--color-text-muted);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+  .dashboard-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-actions {
+    flex-direction: column;
+  }
+
+  .dashboard-table-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "id status"
+      "category category"
+      "route route"
+      "date date";
+    row-gap: 4px;
+  }
+
+  .dashboard-table-head {
+    display: none;
+  }
+
+  .dashboard-table-id {
+    grid-area: id;
+  }
+
+  .dashboard-table-row span:nth-child(5) {
+    grid-area: status;
+    justify-self: end;
+  }
+
+  .dashboard-table-route {
+    grid-area: route;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

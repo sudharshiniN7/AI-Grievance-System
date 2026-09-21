@@ -1,0 +1,132 @@
+.notifications-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 720px;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  text-decoration: none;
+  color: var(--color-text);
+  position: relative;
+  transition: border-color 0.15s ease;
+}
+
+.notification-item:hover {
+  border-color: var(--color-blue);
+}
+
+.notification-item-unread {
+  background: var(--color-info-bg);
+  border-color: transparent;
+}
+
+.notification-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.notification-icon-info {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.notification-icon-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.notification-icon-error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notification-title-row h3 {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.notification-title-row span {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+
+.notification-content p {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.notification-complaint-ref {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-navy);
+}
+
+.notification-dot {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-amber);
+}
+
+.notifications-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 600px) {
+  .notifications-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .notification-title-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .notification-dot {
+    top: 16px;
+    right: 16px;
+  }
+}

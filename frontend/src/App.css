@@ -1,0 +1,188 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+:root {
+  /* Color tokens */
+  --color-navy: #12314f;
+  --color-navy-dark: #0b2137;
+  --color-blue: #2c6e9e;
+  --color-amber: #e07a1f;
+  --color-amber-dark: #c4650f;
+
+  --color-bg: #f6f8fa;
+  --color-surface: #ffffff;
+  --color-border: #e1e6eb;
+
+  --color-text: #1f2937;
+  --color-text-muted: #5b6675;
+  --color-text-faint: #8a93a1;
+
+  --color-success: #2e7d32;
+  --color-success-bg: #e9f5ea;
+  --color-pending: #ed6c02;
+  --color-pending-bg: #fdf1e4;
+  --color-error: #c62828;
+  --color-error-bg: #fbeaea;
+  --color-info: #2c6e9e;
+  --color-info-bg: #e8f1f8;
+
+  /* Layout */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --shadow-card: 0 1px 2px rgba(18, 49, 79, 0.06);
+
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-navy);
+  line-height: 1.25;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--color-blue);
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Focus visibility for accessibility */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- Shared building blocks reused across pages ---------- */
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  font-size: 22px;
+}
+
+.page-header p {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--color-amber);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: var(--color-amber-dark);
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-navy);
+  border-color: var(--color-border);
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.status-badge-resolved {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-badge-pending {
+  background: var(--color-pending-bg);
+  color: var(--color-pending);
+}
+
+.status-badge-rejected {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.status-badge-info {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}

@@ -1,0 +1,142 @@
+.ai-grid {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ---------- Summary ---------- */
+
+.ai-summary-card h2 {
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.ai-summary-card p {
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.ai-summary-card h3 {
+  font-size: 13px;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+}
+
+.ai-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-tag {
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+/* ---------- Sidebar ---------- */
+
+.ai-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ai-metric-label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.ai-metric-value {
+  display: block;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--color-navy);
+  margin-bottom: 14px;
+}
+
+.ai-confidence-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-bg);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.ai-confidence-bar-fill {
+  height: 100%;
+  background: var(--color-amber);
+  border-radius: 999px;
+}
+
+.ai-confidence-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.ai-metric-row-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ai-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ai-metric-row:last-child {
+  border-bottom: none;
+}
+
+.ai-metric-row span:first-child {
+  color: var(--color-text-muted);
+}
+
+.ai-metric-row strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.ai-routing-card {
+  background: var(--color-bg);
+}
+
+.ai-routing-department {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--color-navy);
+  margin-bottom: 8px;
+}
+
+.ai-routing-card p {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+  .ai-grid {
+    grid-template-columns: 1fr;
+  }
+}
