@@ -1,59 +1,75 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { getDashboardStats, getRecentComplaints } from "../services/api";
 import "./PassengerDashboard.css";
 
-const SUMMARY = [
-  { label: "Total Complaints", value: 8 },
-  { label: "In Progress", value: 3 },
-  { label: "Resolved", value: 4 },
-  { label: "Rejected", value: 1 },
-];
-
-const RECENT_COMPLAINTS = [
-  {
-    id: "GR-20481",
-    category: "Cleanliness",
-    route: "Chennai Central → Bengaluru City",
-    status: "pending",
-    statusLabel: "In Progress",
-    date: "18 Sep 2026",
-  },
-  {
-    id: "GR-20463",
-    category: "Staff Behaviour",
-    route: "Coimbatore Jn → Chennai Egmore",
-    status: "resolved",
-    statusLabel: "Resolved",
-    date: "10 Sep 2026",
-  },
-  {
-    id: "GR-20440",
-    category: "Delay",
-    route: "Madurai Jn → Chennai Central",
-    status: "rejected",
-    statusLabel: "Rejected",
-    date: "02 Sep 2026",
-  },
-  {
-    id: "GR-20431",
-    category: "Safety Concern",
-    route: "Local Bus Route 21G",
-    status: "pending",
-    statusLabel: "Under Review",
-    date: "29 Aug 2026",
-  },
-];
-
 function statusBadgeClass(status) {
-  if (status === "resolved") return "status-badge status-badge-resolved";
-  if (status === "rejected") return "status-badge status-badge-rejected";
+  if (status === "Resolved") return "status-badge status-badge-resolved";
+  if (status === "Rejected") return "status-badge status-badge-rejected";
   return "status-badge status-badge-pending";
 }
 
+function formatDate(dateString) {
+  if (!dateString) return "—";
+  return new Date(dateString).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function PassengerDashboard() {
+  const [stats, setStats] = useState(null);
+  const [recentComplaints, setRecentComplaints] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboard() {
+      setIsLoading(true);
+      setErrorMessage("");
+      try {
+        const [statsResponse, recentResponse] = await Promise.all([
+          getDashboardStats(),
+          getRecentComplaints(5),
+        ]);
+        if (isMounted) {
+          setStats(statsResponse.data);
+          setRecentComplaints(recentResponse.data);
+        }
+      } catch (error) {
+        if (isMounted) setErrorMessage(error.message || "Failed to load dashboard.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadDashboard();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const summaryCards = stats
+    ? [
+        { label: "Total Complaints", value: stats.totalComplaints },
+        {
+          label: "In Progress",
+          value:
+            (stats.statusBreakdown["In Progress"] || 0) +
+            (stats.statusBreakdown["Under Review"] || 0),
+        },
+        { label: "Resolved", value: stats.statusBreakdown["Resolved"] || 0 },
+        { label: "Overdue", value: stats.overdueCount },
+      ]
+    : [];
+
   return (
     <div>
       <div className="page-header">
-        <h1>Welcome back, Priya</h1>
+        <h1>Welcome back</h1>
         <p>Here's an overview of your complaints and recent activity.</p>
       </div>
 
@@ -66,47 +82,67 @@ function PassengerDashboard() {
         </Link>
       </div>
 
-      <div className="dashboard-summary-grid">
-        {SUMMARY.map((s) => (
-          <div className="card dashboard-summary-card" key={s.label}>
-            <span className="dashboard-summary-value">{s.value}</span>
-            <span className="dashboard-summary-label">{s.label}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="card dashboard-recent">
-        <div className="dashboard-recent-header">
-          <h2>Recent Complaints</h2>
-          <Link to="/complaints/history">View all</Link>
+      {isLoading && (
+        <div className="card">
+          <p>Loading dashboard…</p>
         </div>
+      )}
 
-        <div className="dashboard-table">
-          <div className="dashboard-table-row dashboard-table-head">
-            <span>Complaint ID</span>
-            <span>Category</span>
-            <span>Route</span>
-            <span>Date</span>
-            <span>Status</span>
+      {!isLoading && errorMessage && (
+        <div className="card">
+          <p>{errorMessage}</p>
+        </div>
+      )}
+
+      {!isLoading && !errorMessage && stats && (
+        <>
+          <div className="dashboard-summary-grid">
+            {summaryCards.map((s) => (
+              <div className="card dashboard-summary-card" key={s.label}>
+                <span className="dashboard-summary-value">{s.value}</span>
+                <span className="dashboard-summary-label">{s.label}</span>
+              </div>
+            ))}
           </div>
 
-          {RECENT_COMPLAINTS.map((c) => (
-            <Link
-              to={`/complaints/${c.id}`}
-              className="dashboard-table-row"
-              key={c.id}
-            >
-              <span className="dashboard-table-id">{c.id}</span>
-              <span>{c.category}</span>
-              <span className="dashboard-table-route">{c.route}</span>
-              <span>{c.date}</span>
-              <span>
-                <span className={statusBadgeClass(c.status)}>{c.statusLabel}</span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      </div>
+          <div className="card dashboard-recent">
+            <div className="dashboard-recent-header">
+              <h2>Recent Complaints</h2>
+              <Link to="/complaints/history">View all</Link>
+            </div>
+
+            <div className="dashboard-table">
+              <div className="dashboard-table-row dashboard-table-head">
+                <span>Complaint ID</span>
+                <span>Category</span>
+                <span>Passenger</span>
+                <span>Date</span>
+                <span>Status</span>
+              </div>
+
+              {recentComplaints.map((c) => (
+                <Link
+                  to={`/complaints/${c.complaintId}`}
+                  className="dashboard-table-row"
+                  key={c.complaintId}
+                >
+                  <span className="dashboard-table-id">{c.complaintId}</span>
+                  <span>{c.category}</span>
+                  <span className="dashboard-table-route">{c.passengerName}</span>
+                  <span>{formatDate(c.createdAt)}</span>
+                  <span>
+                    <span className={statusBadgeClass(c.status)}>{c.status}</span>
+                  </span>
+                </Link>
+              ))}
+
+              {recentComplaints.length === 0 && (
+                <div className="history-empty">No complaints yet.</div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { createComplaint } from "../services/api";
 import "./ComplaintForm.css";
 
 const TRANSPORT_MODES = ["Train", "Bus", "Metro", "Flight", "Ferry"];
@@ -32,7 +33,9 @@ function ComplaintForm() {
 
   const [images, setImages] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedComplaint, setSubmittedComplaint] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const recognitionRef = useRef(null);
 
   function handleChange(e) {
@@ -91,25 +94,59 @@ function ComplaintForm() {
     recognition.start();
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    // Frontend only — no backend call. Placeholder submit behaviour for demo purposes.
-    setSubmitted(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    try {
+      // Note: image files aren't uploaded to the backend yet — no file
+      // storage endpoint exists on the API. Only image filenames are
+      // sent as metadata for now; this can be wired to real uploads
+      // later without changing this form's structure.
+      const payload = {
+        passengerName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        transportMode: formData.transportMode,
+        routeFrom: formData.routeFrom,
+        routeTo: formData.routeTo,
+        travelDate: formData.travelDate || null,
+        location: formData.location,
+        category: formData.category,
+        description: formData.description,
+        images: images.map((img) => img.name),
+      };
+
+      const response = await createComplaint(payload);
+      setSubmittedComplaint(response.data);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      setSubmitError(error.message || "Failed to submit complaint. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
-  if (submitted) {
+  if (submittedComplaint) {
     return (
       <div className="card complaint-form-success">
         <span className="complaint-form-success-icon">✓</span>
         <h2>Complaint submitted successfully</h2>
         <p>
           Your complaint has been registered with reference ID{" "}
-          <strong>GR-20492</strong>. Our AI system is now analysing and
-          categorising it.
+          <strong>{submittedComplaint.complaintId}</strong>. Our AI system is
+          now analysing and categorising it.
         </p>
         <div className="complaint-form-success-actions">
-          <button className="btn btn-primary" onClick={() => navigate("/complaints/track")}>
+          <button
+            className="btn btn-primary"
+            onClick={() =>
+              navigate("/complaints/track", {
+                state: { complaintId: submittedComplaint.complaintId },
+              })
+            }
+          >
             Track this Complaint
           </button>
           <button className="btn btn-secondary" onClick={() => navigate("/dashboard")}>
@@ -128,6 +165,8 @@ function ComplaintForm() {
       </div>
 
       <form className="card complaint-form" onSubmit={handleSubmit}>
+        {submitError && <div className="complaint-form-error">{submitError}</div>}
+
         <section className="complaint-form-section">
           <h2>Passenger Details</h2>
           <div className="complaint-form-row">
@@ -338,11 +377,16 @@ function ComplaintForm() {
         </section>
 
         <div className="complaint-form-actions">
-          <button type="button" className="btn btn-secondary" onClick={() => navigate(-1)}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => navigate(-1)}
+            disabled={isSubmitting}
+          >
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            Submit Complaint
+          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+            {isSubmitting ? "Submitting…" : "Submit Complaint"}
           </button>
         </div>
       </form>

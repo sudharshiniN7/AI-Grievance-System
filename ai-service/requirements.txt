@@ -1,0 +1,5 @@
+fastapi
+uvicorn[standard]==0.30.6
+pydantic
+python-dotenv==1.0.1
+vaderSentiment==3.3.2

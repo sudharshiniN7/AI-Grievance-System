@@ -1,86 +1,72 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { getAllComplaints } from "../services/api";
 import "./ComplaintHistory.css";
-
-const ALL_COMPLAINTS = [
-  {
-    id: "GR-20481",
-    category: "Cleanliness",
-    route: "Chennai Central → Bengaluru City",
-    status: "pending",
-    statusLabel: "In Progress",
-    date: "18 Sep 2026",
-  },
-  {
-    id: "GR-20463",
-    category: "Staff Behaviour",
-    route: "Coimbatore Jn → Chennai Egmore",
-    status: "resolved",
-    statusLabel: "Resolved",
-    date: "10 Sep 2026",
-  },
-  {
-    id: "GR-20440",
-    category: "Delay",
-    route: "Madurai Jn → Chennai Central",
-    status: "rejected",
-    statusLabel: "Rejected",
-    date: "02 Sep 2026",
-  },
-  {
-    id: "GR-20431",
-    category: "Safety Concern",
-    route: "Local Bus Route 21G",
-    status: "pending",
-    statusLabel: "Under Review",
-    date: "29 Aug 2026",
-  },
-  {
-    id: "GR-20402",
-    category: "Ticketing / Billing",
-    route: "Trichy Jn → Chennai Central",
-    status: "resolved",
-    statusLabel: "Resolved",
-    date: "21 Aug 2026",
-  },
-  {
-    id: "GR-20390",
-    category: "Delay",
-    route: "Chennai Metro — Blue Line",
-    status: "resolved",
-    statusLabel: "Resolved",
-    date: "14 Aug 2026",
-  },
-];
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
-  { key: "pending", label: "In Progress" },
-  { key: "resolved", label: "Resolved" },
-  { key: "rejected", label: "Rejected" },
+  { key: "Under Review", label: "Under Review" },
+  { key: "In Progress", label: "In Progress" },
+  { key: "Resolved", label: "Resolved" },
+  { key: "Rejected", label: "Rejected" },
 ];
 
 function statusBadgeClass(status) {
-  if (status === "resolved") return "status-badge status-badge-resolved";
-  if (status === "rejected") return "status-badge status-badge-rejected";
+  if (status === "Resolved") return "status-badge status-badge-resolved";
+  if (status === "Rejected") return "status-badge status-badge-rejected";
   return "status-badge status-badge-pending";
 }
 
+function formatDate(dateString) {
+  if (!dateString) return "—";
+  return new Date(dateString).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function ComplaintHistory() {
+  const [complaints, setComplaints] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadComplaints() {
+      setIsLoading(true);
+      setErrorMessage("");
+      try {
+        const response = await getAllComplaints();
+        if (isMounted) setComplaints(response.data);
+      } catch (error) {
+        if (isMounted) setErrorMessage(error.message || "Failed to load complaint history.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadComplaints();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const filtered = useMemo(() => {
-    return ALL_COMPLAINTS.filter((c) => {
+    return complaints.filter((c) => {
       const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+      const routeText = `${c.route?.from || ""} ${c.route?.to || ""}`;
       const matchesQuery =
         query.trim() === "" ||
-        c.id.toLowerCase().includes(query.toLowerCase()) ||
+        c.complaintId.toLowerCase().includes(query.toLowerCase()) ||
         c.category.toLowerCase().includes(query.toLowerCase()) ||
-        c.route.toLowerCase().includes(query.toLowerCase());
+        routeText.toLowerCase().includes(query.toLowerCase());
       return matchesStatus && matchesQuery;
     });
-  }, [statusFilter, query]);
+  }, [complaints, statusFilter, query]);
 
   return (
     <div>
@@ -114,35 +100,55 @@ function ComplaintHistory() {
         />
       </div>
 
-      <div className="card history-table-wrap">
-        <div className="dashboard-table">
-          <div className="dashboard-table-row dashboard-table-head">
-            <span>Complaint ID</span>
-            <span>Category</span>
-            <span>Route</span>
-            <span>Date</span>
-            <span>Status</span>
-          </div>
-
-          {filtered.map((c) => (
-            <Link to={`/complaints/${c.id}`} className="dashboard-table-row" key={c.id}>
-              <span className="dashboard-table-id">{c.id}</span>
-              <span>{c.category}</span>
-              <span className="dashboard-table-route">{c.route}</span>
-              <span>{c.date}</span>
-              <span>
-                <span className={statusBadgeClass(c.status)}>{c.statusLabel}</span>
-              </span>
-            </Link>
-          ))}
-
-          {filtered.length === 0 && (
-            <div className="history-empty">
-              No complaints match your search or filter.
-            </div>
-          )}
+      {isLoading && (
+        <div className="card history-table-wrap">
+          <div className="history-empty">Loading complaints…</div>
         </div>
-      </div>
+      )}
+
+      {!isLoading && errorMessage && (
+        <div className="card history-table-wrap">
+          <div className="history-empty">{errorMessage}</div>
+        </div>
+      )}
+
+      {!isLoading && !errorMessage && (
+        <div className="card history-table-wrap">
+          <div className="dashboard-table">
+            <div className="dashboard-table-row dashboard-table-head">
+              <span>Complaint ID</span>
+              <span>Category</span>
+              <span>Route</span>
+              <span>Date</span>
+              <span>Status</span>
+            </div>
+
+            {filtered.map((c) => (
+              <Link
+                to={`/complaints/${c.complaintId}`}
+                className="dashboard-table-row"
+                key={c.complaintId}
+              >
+                <span className="dashboard-table-id">{c.complaintId}</span>
+                <span>{c.category}</span>
+                <span className="dashboard-table-route">
+                  {c.route?.from} → {c.route?.to}
+                </span>
+                <span>{formatDate(c.createdAt)}</span>
+                <span>
+                  <span className={statusBadgeClass(c.status)}>{c.status}</span>
+                </span>
+              </Link>
+            ))}
+
+            {filtered.length === 0 && (
+              <div className="history-empty">
+                No complaints match your search or filter.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
