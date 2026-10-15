@@ -1,4 +1,5 @@
 const Complaint = require("../models/Complaint");
+const { analyzeComplaint } = require("../services/aiService");
 
 /**
  * Complaint Controller
@@ -6,7 +7,16 @@ const Complaint = require("../models/Complaint");
  * Core CRUD logic for complaints: create, list, retrieve by ID,
  * update status, assign department, update priority.
  * SLA/escalation and dashboard statistics are handled in separate
- * controller files (coming in later steps).
+ * controller files.
+ *
+ * createComplaint now also calls the Python AI/NLP service to derive
+ * category, subcategory, priority, severity, sentiment, extracted
+ * entities, and a suggested department before saving. This call is
+ * non-blocking on failure — if the AI service is down, slow, or errors,
+ * the complaint is still created with the model's existing defaults
+ * (priority: "Medium", sentiment: null, etc.), and a warning is logged
+ * server-side. A passenger's ability to file a complaint should never
+ * depend on an optional AI add-on being available.
  */
 
 // SLA hours by priority — mirrors the logic used when a complaint is created.
@@ -26,7 +36,15 @@ async function generateComplaintId() {
 
 /**
  * POST /api/complaints
- * Creates a new complaint.
+ * Creates a new complaint. Calls the AI service to enrich the complaint
+ * with category, subcategory, priority, severity, sentiment, extracted
+ * entities, and a suggested department before saving.
+ */
+/**
+ * POST /api/complaints
+ * Creates a new complaint. Calls the AI service to enrich the complaint
+ * with category, subcategory, priority, severity, sentiment, extracted
+ * entities, and a suggested department before saving.
  */
 async function createComplaint(req, res) {
   try {
@@ -46,8 +64,42 @@ async function createComplaint(req, res) {
     } = req.body;
 
     const complaintId = await generateComplaintId();
-    const resolvedPriority = priority || "Medium";
     const now = new Date();
+
+    // ----- AI analysis (non-blocking on failure) -----
+    const aiResult = await analyzeComplaint(description, transportMode);
+
+    let resolvedCategory = category;
+    let subcategory = null;
+    let resolvedPriority = priority || "Medium";
+    let severity = null;
+    let sentiment = null;
+    let extractedEntities = {};
+    let assignedDepartment = null;
+
+    if (aiResult.success) {
+      const ai = aiResult.data;
+
+      // Passenger-submitted category (from the form's dropdown) is kept
+      // as the source of truth if provided — the AI's category is only
+      // used as a fallback if the passenger didn't supply one. This
+      // avoids silently overriding a passenger's explicit selection.
+      resolvedCategory = category || ai.category;
+      subcategory = ai.subcategory;
+
+      // Only use the AI's priority if the passenger/request didn't
+      // explicitly set one (priority is optional on the incoming payload).
+      resolvedPriority = priority || ai.priority;
+
+      severity = ai.severity;
+      sentiment = ai.sentiment;
+      extractedEntities = ai.extractedEntities;
+      assignedDepartment = ai.suggestedDepartment; // starting suggestion, not a final dispatch
+    } else {
+      console.warn(
+        `AI analysis skipped for new complaint (${complaintId}): ${aiResult.error}`
+      );
+    }
 
     const complaint = await Complaint.create({
       complaintId,
@@ -58,10 +110,15 @@ async function createComplaint(req, res) {
       route: { from: routeFrom, to: routeTo },
       travelDate: travelDate || null,
       location,
-      category,
+      category: resolvedCategory,
+      subcategory,
       description,
       images: images || [],
       priority: resolvedPriority,
+      severity,
+      sentiment,
+      extractedEntities,
+      assignedDepartment,
       status: "Registered",
       slaDueAt: calculateSlaDueDate(resolvedPriority, now),
       statusHistory: [
@@ -76,6 +133,7 @@ async function createComplaint(req, res) {
     return res.status(201).json({
       success: true,
       message: "Complaint registered successfully.",
+      aiAnalysisApplied: aiResult.success,
       data: complaint,
     });
   } catch (error) {

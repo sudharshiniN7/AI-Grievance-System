@@ -51,20 +51,62 @@ function PassengerDashboard() {
       isMounted = false;
     };
   }, []);
-
+  const ICONS = {
+  total: (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 12h6M9 16h6M9 8h6" />
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+    </svg>
+  ),
+  progress: (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  ),
+  resolved: (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12l2.5 2.5L16 9" />
+    </svg>
+  ),
+  overdue: (
+    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 9v4M12 17h.01" />
+      <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7 3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+    </svg>
+  ),
+};
   const summaryCards = stats
-    ? [
-        { label: "Total Complaints", value: stats.totalComplaints },
-        {
-          label: "In Progress",
-          value:
-            (stats.statusBreakdown["In Progress"] || 0) +
-            (stats.statusBreakdown["Under Review"] || 0),
-        },
-        { label: "Resolved", value: stats.statusBreakdown["Resolved"] || 0 },
-        { label: "Overdue", value: stats.overdueCount },
-      ]
-    : [];
+  ? [
+      {
+        key: "total",
+        label: "Total Complaints",
+        value: stats.totalComplaints,
+        className: "dashboard-summary-card-total",
+      },
+      {
+        key: "progress",
+        label: "In Progress",
+        value:
+          (stats.statusBreakdown["In Progress"] || 0) +
+          (stats.statusBreakdown["Under Review"] || 0),
+        className: "dashboard-summary-card-progress",
+      },
+      {
+        key: "resolved",
+        label: "Resolved",
+        value: stats.statusBreakdown["Resolved"] || 0,
+        className: "dashboard-summary-card-resolved",
+      },
+      {
+        key: "overdue",
+        label: "Overdue",
+        value: stats.overdueCount,
+        className: "dashboard-summary-card-overdue",
+      },
+    ]
+  : [];
 
   return (
     <div>
@@ -97,13 +139,18 @@ function PassengerDashboard() {
       {!isLoading && !errorMessage && stats && (
         <>
           <div className="dashboard-summary-grid">
-            {summaryCards.map((s) => (
-              <div className="card dashboard-summary-card" key={s.label}>
-                <span className="dashboard-summary-value">{s.value}</span>
-                <span className="dashboard-summary-label">{s.label}</span>
-              </div>
-            ))}
-          </div>
+  {summaryCards.map((s) => (
+    <div className={`card dashboard-summary-card ${s.className}`} key={s.label}>
+      <span className="dashboard-summary-icon" aria-hidden="true">
+        {ICONS[s.key]}
+      </span>
+      <span className="dashboard-summary-text">
+        <span className="dashboard-summary-value">{s.value}</span>
+        <span className="dashboard-summary-label">{s.label}</span>
+      </span>
+    </div>
+  ))}
+</div>
 
           <div className="card dashboard-recent">
             <div className="dashboard-recent-header">
