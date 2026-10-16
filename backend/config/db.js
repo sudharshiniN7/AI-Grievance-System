@@ -17,14 +17,18 @@ async function connectDB() {
   try {
     mongoose.set("strictQuery", true);
 
-    const conn = await mongoose.connect(MONGO_URI);
+    const conn = await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
 
     console.log(`MongoDB connected: ${conn.connection.host}/${conn.connection.name}`);
 
     return conn;
   } catch (error) {
     console.error("MongoDB connection failed:", error.message);
-    process.exit(1);
+    if (process.env.NODE_ENV !== "production") {
+      process.exit(1);
+    }
   }
 }
 

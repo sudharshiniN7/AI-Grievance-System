@@ -45,6 +45,7 @@ function getCookieOptions() {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
+    partitioned: isProduction,
     maxAge: COOKIE_MAX_AGE_MS,
     path: "/",
   };
@@ -122,6 +123,7 @@ async function register(req, res) {
       success: true,
       message: "Account created successfully.",
       user: user.toSafeJSON(),
+      token,
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -200,6 +202,7 @@ async function login(req, res) {
       success: true,
       message: "Logged in successfully.",
       user: user.toSafeJSON(),
+      token,
     });
   } catch (error) {
     console.error("login error:", error.message);
@@ -235,10 +238,49 @@ async function getCurrentUser(req, res) {
   });
 }
 
+/**
+ * Automatically provisions the primary admin account if configured in env
+ * and no primary admin exists yet. Useful for cloud environments like Render
+ * where interactive terminal access is not available.
+ */
+async function autoSeedAdminIfConfigured() {
+  const { ADMIN_NAME, ADMIN_EMAIL, ADMIN_USER_ID, ADMIN_PASSWORD } = process.env;
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !ADMIN_USER_ID) {
+    return;
+  }
+  try {
+    const existingAdmin = await User.findOne({
+      $or: [
+        { isPrimaryAdmin: true },
+        { email: ADMIN_EMAIL.trim().toLowerCase() },
+        { adminUserId: ADMIN_USER_ID.trim() },
+      ],
+    });
+    if (existingAdmin) {
+      console.log(`Admin account verified (${existingAdmin.email})`);
+      return;
+    }
+    const admin = new User({
+      fullName: (ADMIN_NAME || "System Administrator").trim(),
+      email: ADMIN_EMAIL.trim().toLowerCase(),
+      role: "admin",
+      isPrimaryAdmin: true,
+      adminUserId: ADMIN_USER_ID.trim(),
+      isActive: true,
+    });
+    await admin.setPassword(ADMIN_PASSWORD);
+    await admin.save();
+    console.log(`Administrator account provisioned automatically for: ${admin.email}`);
+  } catch (err) {
+    console.error("Auto-seed admin check failed:", err.message);
+  }
+}
+
 module.exports = {
   register,
   login,
   logout,
   getCurrentUser,
+  autoSeedAdminIfConfigured,
   COOKIE_NAME, // exported so the auth middleware reads the same cookie name
 };

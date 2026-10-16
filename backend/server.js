@@ -5,10 +5,12 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser"); // <-- ADDED
 
+const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const complaintRoutes = require("./routes/complaintRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const authRoutes = require("./routes/authRoutes"); // <-- ADDED
+const { autoSeedAdminIfConfigured } = require("./controllers/authController");
 
 /**
  * Server Entry Point
@@ -20,13 +22,16 @@ const authRoutes = require("./routes/authRoutes"); // <-- ADDED
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ---------- Connect to MongoDB ----------
-connectDB();
+// ---------- Connect to MongoDB & Auto-seed Admin ----------
+connectDB().then(() => {
+  autoSeedAdminIfConfigured();
+});
 
 // ---------- Global middleware ----------
 
 const allowedOrigins = [
   process.env.FRONTEND_ORIGIN,
+  "https://resolvex-lemon.vercel.app",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:5174",
@@ -36,7 +41,12 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+        /^https:\/\/[\w-]+\.vercel\.app$/.test(origin)
+      ) {
         return callback(null, true);
       }
       return callback(new Error("CORS origin not allowed: " + origin), false);
@@ -51,17 +61,36 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ---------- Health check ----------
-app.get("/", (req, res) => {
+app.get(["/", "/health", "/api"], (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? "connected" : "disconnected";
   res.status(200).json({
     success: true,
     message: "Passenger Grievance Redressal System API is running.",
+    database: dbStatus,
   });
+});
+
+// ---------- Database connectivity guard for API routes ----------
+app.use(["/api", "/auth", "/complaints", "/dashboard"], (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      message:
+        "Database connection unavailable. Please check MONGO_URI in Render environment settings and ensure MongoDB Atlas Network Access allows 0.0.0.0/0.",
+    });
+  }
+  next();
 });
 
 // ---------- API routes ----------
 app.use("/api/auth", authRoutes); // <-- ADDED
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+
+// Compatibility route aliases (without /api prefix)
+app.use("/auth", authRoutes);
+app.use("/complaints", complaintRoutes);
+app.use("/dashboard", dashboardRoutes);
 
 // ---------- 404 handler ----------
 app.use((req, res) => {
