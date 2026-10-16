@@ -7,7 +7,20 @@
 const TOKEN_KEY = "grievance_auth_token";
 
 function getResolvedApiUrl(path) {
-  let base = (import.meta.env.VITE_API_BASE_URL || "https://resolvex-yroo.onrender.com/api").trim();
+  let base = (import.meta.env.VITE_API_BASE_URL || "").trim();
+
+  // If running locally in the browser, route to the local backend on port 5000
+  if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+    if (!base || base.includes("onrender.com")) {
+      base = "http://localhost:5000/api";
+    }
+  }
+
+  // If in production or deployed on Vercel, default to the Render backend
+  if (!base) {
+    base = "https://resolvex-yroo.onrender.com/api";
+  }
+
   // Strip trailing slashes
   base = base.replace(/\/+$/, "");
   // Ensure base ends with /api
