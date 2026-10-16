@@ -1,4 +1,5 @@
-require("dotenv").config({ path: "./backend/.env" });
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const express = require("express");
 const cors = require("cors");
@@ -24,16 +25,23 @@ connectDB();
 
 // ---------- Global middleware ----------
 
-// CHANGED: was app.use(cors()) with no options — allowed all origins but
-// did NOT allow credentials (cookies) to be sent/received. Auth cookies
-// require an explicit origin + credentials: true; "*" and credentials
-// cannot be combined per the CORS spec, so this must name the frontend's
-// actual origin.
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:5173"; // <-- ADDED
+const allowedOrigins = [
+  process.env.FRONTEND_ORIGIN,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5174",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: FRONTEND_ORIGIN, // <-- CHANGED (was: no options, i.e. allow all)
-    credentials: true,        // <-- ADDED — required for the browser to send/store the auth cookie
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("CORS origin not allowed: " + origin), false);
+    },
+    credentials: true,
   })
 );
 

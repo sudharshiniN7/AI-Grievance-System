@@ -36,7 +36,11 @@ const JWT_SECRET = process.env.JWT_SECRET;
  */
 async function protect(req, res, next) {
   try {
-    const token = req.cookies ? req.cookies[COOKIE_NAME] : null;
+    let token = req.cookies ? req.cookies[COOKIE_NAME] : null;
+
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
 
     if (!token) {
       return res.status(401).json({ success: false, message: "Authentication required." });

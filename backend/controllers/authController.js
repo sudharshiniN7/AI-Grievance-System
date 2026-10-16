@@ -110,7 +110,6 @@ async function register(req, res) {
       phone: phone ? phone.trim() : null,
       role: "passenger", // hardcoded — never derived from req.body
       isPrimaryAdmin: false,
-      adminUserId: null,
     });
 
     await user.setPassword(password);
@@ -126,7 +125,12 @@ async function register(req, res) {
     });
   } catch (error) {
     if (error.code === 11000) {
-      // MongoDB duplicate key (race condition on unique email index)
+      if (error.keyPattern && error.keyPattern.adminUserId) {
+        return res.status(409).json({
+          success: false,
+          message: "An account with this user ID already exists.",
+        });
+      }
       return res.status(409).json({
         success: false,
         message: "An account with this email already exists.",

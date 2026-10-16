@@ -1,4 +1,5 @@
-import { NavLink, Outlet, Link } from "react-router-dom";
+import { NavLink, Outlet, Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "./AppLayout.css";
 
 const NAV_ITEMS = [
@@ -57,6 +58,24 @@ const NAV_ITEMS = [
 ];
 
 function AppLayout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await logout();
+    navigate("/login", { replace: true });
+  }
+
+  const initials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .filter(Boolean)
+        .map((p) => p[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase()
+    : "PA";
+
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
@@ -98,8 +117,16 @@ function AppLayout() {
               🔔
             </Link>
             <div className="app-topbar-user">
-              <span className="app-topbar-user-avatar">PS</span>
-              <span className="app-topbar-user-name">Priya Sharma</span>
+              <span className="app-topbar-user-avatar">{initials}</span>
+              <span className="app-topbar-user-name">{user?.fullName || "Passenger"}</span>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleLogout}
+                style={{ marginLeft: 12, padding: "6px 12px", fontSize: 13 }}
+              >
+                Log Out
+              </button>
             </div>
           </div>
         </header>

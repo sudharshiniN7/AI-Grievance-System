@@ -200,7 +200,7 @@ async function getComplaintById(req, res) {
  */
 async function updateStatus(req, res) {
   try {
-    const { status, note } = req.body;
+    const { status, note, resolutionSummary, resolvedBy } = req.body;
     const complaint = await Complaint.findOne({ complaintId: req.params.id });
 
     if (!complaint) {
@@ -208,6 +208,16 @@ async function updateStatus(req, res) {
     }
 
     complaint.addStatusHistory(status, note || "");
+
+    if (status === "Resolved") {
+      complaint.resolution = {
+        summary: resolutionSummary || note || "Resolved by administrator.",
+        resolvedBy: resolvedBy || (req.user ? req.user.fullName : "Administrator"),
+        resolvedAt: new Date(),
+      };
+      complaint.resolvedAt = new Date();
+    }
+
     await complaint.save();
 
     return res.status(200).json({

@@ -122,7 +122,172 @@ async function getRecentComplaints(req, res) {
   }
 }
 
+async function getAdminAnalytics(req, res) {
+  try {
+    const now = new Date();
+
+    const [
+      totalCount,
+      categoryAgg,
+      transportAgg,
+      priorityAgg,
+      statusAgg,
+      locationAgg,
+      routeAgg,
+      sentimentAgg,
+      recurringAgg,
+      trendsAgg,
+      overdueCount,
+      escalatedCount,
+    ] = await Promise.all([
+      Complaint.countDocuments(),
+      Complaint.aggregate([
+        {
+          $group: {
+            _id: "$category",
+            count: { $sum: 1 },
+            resolvedCount: {
+              $sum: { $cond: [{ $eq: ["$status", "Resolved"] }, 1, 0] },
+            },
+          },
+        },
+        { $sort: { count: -1 } },
+      ]),
+      Complaint.aggregate([
+        {
+          $group: {
+            _id: "$transportMode",
+            count: { $sum: 1 },
+            highPriorityCount: {
+              $sum: { $cond: [{ $eq: ["$priority", "High"] }, 1, 0] },
+            },
+          },
+        },
+        { $sort: { count: -1 } },
+      ]),
+      Complaint.aggregate([
+        { $group: { _id: "$priority", count: { $sum: 1 } } },
+      ]),
+      Complaint.aggregate([
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+      Complaint.aggregate([
+        { $match: { location: { $exists: true, $ne: "" } } },
+        { $group: { _id: "$location", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 6 },
+      ]),
+      Complaint.aggregate([
+        {
+          $match: {
+            "route.from": { $exists: true, $ne: "" },
+            "route.to": { $exists: true, $ne: "" },
+          },
+        },
+        {
+          $group: {
+            _id: { from: "$route.from", to: "$route.to" },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1 } },
+        { $limit: 6 },
+      ]),
+      Complaint.aggregate([
+        { $match: { sentiment: { $ne: null } } },
+        { $group: { _id: "$sentiment", count: { $sum: 1 } } },
+      ]),
+      Complaint.aggregate([
+        { $match: { subcategory: { $ne: null, $ne: "" } } },
+        {
+          $group: {
+            _id: { category: "$category", subcategory: "$subcategory" },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1 } },
+        { $limit: 6 },
+      ]),
+      Complaint.aggregate([
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            count: { $sum: 1 },
+            resolved: {
+              $sum: { $cond: [{ $eq: ["$status", "Resolved"] }, 1, 0] },
+            },
+          },
+        },
+        { $sort: { _id: 1 } },
+        { $limit: 14 },
+      ]),
+      Complaint.countDocuments({
+        status: { $in: OPEN_STATUSES },
+        slaDueAt: { $lt: now },
+      }),
+      Complaint.countDocuments({ isEscalated: true }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalComplaints: totalCount,
+        overdueCount,
+        escalatedCount,
+        categoryDistribution: categoryAgg.map((item) => ({
+          category: item._id || "Unspecified",
+          count: item.count,
+          resolvedCount: item.resolvedCount,
+        })),
+        transportDistribution: transportAgg.map((item) => ({
+          transportMode: item._id || "Other",
+          count: item.count,
+          highPriorityCount: item.highPriorityCount,
+        })),
+        priorityDistribution: priorityAgg.reduce((acc, item) => {
+          acc[item._id || "Medium"] = item.count;
+          return acc;
+        }, {}),
+        statusDistribution: statusAgg.reduce((acc, item) => {
+          acc[item._id] = item.count;
+          return acc;
+        }, {}),
+        topLocations: locationAgg.map((item) => ({
+          location: item._id,
+          count: item.count,
+        })),
+        topRoutes: routeAgg.map((item) => ({
+          from: item._id.from,
+          to: item._id.to,
+          count: item.count,
+        })),
+        sentimentDistribution: sentimentAgg.reduce((acc, item) => {
+          acc[item._id] = item.count;
+          return acc;
+        }, {}),
+        recurringPatterns: recurringAgg.map((item) => ({
+          category: item._id.category,
+          subcategory: item._id.subcategory,
+          count: item.count,
+        })),
+        recentTrends: trendsAgg.map((item) => ({
+          date: item._id,
+          total: item.count,
+          resolved: item.resolved,
+        })),
+      },
+    });
+  } catch (error) {
+    console.error("getAdminAnalytics error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate grievance intelligence analytics.",
+    });
+  }
+}
+
 module.exports = {
   getDashboardStats,
   getRecentComplaints,
+  getAdminAnalytics,
 };

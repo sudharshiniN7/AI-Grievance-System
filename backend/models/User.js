@@ -41,9 +41,11 @@ const userSchema = new mongoose.Schema(
     },
     adminUserId: {
       type: String,
-      default: null,
-      unique: true,
-      sparse: true,
+      default: undefined,
+      index: {
+        unique: true,
+        partialFilterExpression: { adminUserId: { $type: "string" } },
+      },
     },
     isActive: {
       type: Boolean,

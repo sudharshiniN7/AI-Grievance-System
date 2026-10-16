@@ -1,21 +1,14 @@
 /**
  * API Service
  * ------------
- * Central place for all calls to the Express backend. Every frontend
- * page/component that needs backend data should import from here rather
- * than calling fetch() directly — keeps the base URL and error handling
- * in one place.
+ * Central place for all calls to the Express backend.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
-/**
- * Internal helper: performs a fetch call, parses JSON, and throws a
- * readable error if the backend responded with success: false or a
- * non-2xx status.
- */
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include", // <-- ADDED: required so the HTTP-only auth cookie is sent/stored
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
@@ -37,14 +30,32 @@ async function request(path, options = {}) {
   return data;
 }
 
-// ---------- Complaints ----------
+// ---------- Auth ---------- // <-- ADDED section
 
-/**
- * Creates a new complaint.
- * @param {object} payload - matches backend's expected body shape
- * (passengerName, email, phone, transportMode, routeFrom, routeTo,
- * travelDate, location, category, description, images, priority)
- */
+export function registerUser({ fullName, email, password, phone }) {
+  return request("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ fullName, email, password, phone }),
+  });
+}
+
+export function loginUser({ identifier, password }) {
+  return request("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ identifier, password }),
+  });
+}
+
+export function logoutUser() {
+  return request("/auth/logout", { method: "POST" });
+}
+
+export function fetchCurrentUser() {
+  return request("/auth/me");
+}
+
+// ---------- Complaints ---------- (unchanged below)
+
 export function createComplaint(payload) {
   return request("/complaints", {
     method: "POST",
@@ -52,10 +63,6 @@ export function createComplaint(payload) {
   });
 }
 
-/**
- * Fetches all complaints, with optional filters.
- * @param {object} filters - { status, category, department, priority }
- */
 export function getAllComplaints(filters = {}) {
   const params = new URLSearchParams(
     Object.entries(filters).filter(([, value]) => Boolean(value))
@@ -64,26 +71,55 @@ export function getAllComplaints(filters = {}) {
   return request(`/complaints${query}`);
 }
 
-/**
- * Fetches a single complaint by its complaintId (e.g. GR-20482).
- */
 export function getComplaintById(id) {
   return request(`/complaints/${encodeURIComponent(id)}`);
 }
 
-// ---------- Dashboard ----------
+export function updateComplaintStatus(id, { status, note, resolutionSummary, resolvedBy }) {
+  return request(`/complaints/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, note, resolutionSummary, resolvedBy }),
+  });
+}
 
-/**
- * Fetches aggregate dashboard statistics.
- */
+export function assignDepartment(id, { department }) {
+  return request(`/complaints/${encodeURIComponent(id)}/assign`, {
+    method: "PATCH",
+    body: JSON.stringify({ department }),
+  });
+}
+
+export function updatePriority(id, { priority }) {
+  return request(`/complaints/${encodeURIComponent(id)}/priority`, {
+    method: "PATCH",
+    body: JSON.stringify({ priority }),
+  });
+}
+
+export function getOverdueComplaints() {
+  return request("/complaints/sla/overdue");
+}
+
+export function escalateOverdueComplaints() {
+  return request("/complaints/sla/escalate", {
+    method: "POST",
+  });
+}
+
+export function getSlaStatus(id) {
+  return request(`/complaints/${encodeURIComponent(id)}/sla`);
+}
+
+// ---------- Dashboard & Analytics ----------
+
 export function getDashboardStats() {
   return request("/dashboard/stats");
 }
 
-/**
- * Fetches the most recent complaints.
- * @param {number} limit
- */
 export function getRecentComplaints(limit = 5) {
   return request(`/dashboard/recent?limit=${limit}`);
+}
+
+export function getAdminAnalytics() {
+  return request("/dashboard/analytics");
 }
