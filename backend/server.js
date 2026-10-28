@@ -76,7 +76,7 @@ app.use(["/api", "/auth", "/complaints", "/dashboard"], (req, res, next) => {
     return res.status(503).json({
       success: false,
       message:
-        "Database connection unavailable. Please check MONGO_URI in Render environment settings and ensure MongoDB Atlas Network Access allows 0.0.0.0/0.",
+        "Database connection unavailable. Please make sure MongoDB is running locally on 127.0.0.1:27017.",
     });
   }
   next();
